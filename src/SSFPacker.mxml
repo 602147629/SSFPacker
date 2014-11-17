@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009"
+					   xmlns:s="library://ns.adobe.com/flex/spark"
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="600" height="334" showStatusBar="false" 
+					   creationComplete="application1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import air.update.ApplicationUpdaterUI;
+			
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			
+			import spark.events.TextOperationEvent;
+			
+			import update.AirUpdate;
+			
+			/** 初始化 */
+			protected function application1_creationCompleteHandler(e:FlexEvent):void
+			{
+				var appUpdater:ApplicationUpdaterUI = new ApplicationUpdaterUI();
+				nativeWindow.title = "SSFPacker "+appUpdater.currentVersion;
+				// 检查更新
+				new AirUpdate().checkUpdate();
+				// 初始化导出路径
+				var exportPath:String = Common.getLocalStore(Common.LOCAL_STORE_KEY);
+				if (exportPath)
+				{
+					txtExportPath.text = exportPath;
+					Common.exportPath = exportPath;
+				}
+				// 初始化文件处理器
+				FileHandler.getInstance().init(listFiles);
+				// 开启拖拽文件支持
+				addEventListener(NativeDragEvent.NATIVE_DRAG_ENTER, onDrop);
+				addEventListener(NativeDragEvent.NATIVE_DRAG_DROP, onDrop);
+			}
+			
+			protected function onDrop(e:NativeDragEvent):void
+			{
+				if (e.type == NativeDragEvent.NATIVE_DRAG_ENTER)
+				{
+					NativeDragManager.acceptDragDrop(this);
+				}
+				
+				if (e.type == NativeDragEvent.NATIVE_DRAG_DROP)
+				{
+					var dropfiles:Array = e.clipboard.getData(ClipboardFormats.FILE_LIST_FORMAT) as Array;
+					FileHandler.getInstance().onDrop(dropfiles);
+				}
+			}
+			
+			protected function btnExport_clickHandler(event:MouseEvent):void
+			{
+				FileHandler.getInstance().export();
+			}
+			
+			protected function btnBrowse_clickHandler(event:MouseEvent):void
+			{
+				var file:File = File.desktopDirectory;
+				file.browseForDirectory("选择导出文件夹");
+				file.addEventListener(Event.SELECT, onFolderSelected);
+			}
+			
+			protected function onFolderSelected(event:Event):void
+			{
+				var folder:File = event.target as File;
+				Common.exportPath = folder.nativePath;
+				txtExportPath.text = folder.nativePath;
+				Common.setLocalStore(Common.LOCAL_STORE_KEY, folder.nativePath);
+			}
+			
+			protected function txtExportPath_changeHandler(event:TextOperationEvent):void
+			{
+				var file:File = new File(txtExportPath.text);
+				if (file.exists)
+				{
+					Common.exportPath = file.nativePath;
+					Common.setLocalStore(Common.LOCAL_STORE_KEY, file.nativePath);
+				}
+			}
+			
+			protected function btnAbout_clickHandler(event:MouseEvent):void
+			{
+				var about:String = "此工具用于将Starling动画的位图序列表及配置打包。\n" +
+					"支持文件和目录拖放(不支持子目录)。\n" +
+					"拖放时注意png和xml文件名对应才能正常打包，缺一不可。\n\n" +
+					"bindiry@gmail.com";
+				Alert.show(about);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Button id="btnExport" x="520" y="301" label="导出" click="btnExport_clickHandler(event)"/>
+	<s:List id="listFiles" x="10" y="10" width="580" height="251"></s:List>
+	<s:TextInput id="txtExportPath" x="10" y="269" width="502"
+				 change="txtExportPath_changeHandler(event)"/>
+	<s:Button id="btnBrowse" x="520" y="269" label="浏览..." click="btnBrowse_clickHandler(event)"/>
+	<s:Button id="btnAbout" x="10" y="303" label="关于" click="btnAbout_clickHandler(event)"/>
+</s:WindowedApplication>
